@@ -7,7 +7,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import tensor
-from ..base_dataset import find_class
+from src.base_module.base_dataset import find_class
 from .ECO_utils import (
     preprocess,
     threshold_occ,
@@ -368,13 +368,3 @@ def test1():
             )
             eco_data.prepare_data()
             eco_data.setup()
-            # eco_data.visualize()
-            # for i, batch in enumerate(eco_data.val_dataloader()):
-            #     x,y = batch
-            #     eco_data.visualize_batch(x, y, y, i)
-
-
-# if __name__ == '__main__':
-
-
-#     test1()
