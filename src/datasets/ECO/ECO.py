@@ -73,7 +73,7 @@ class ECODataset(pl.LightningDataModule):
         self.determ = determ
         self.num_workers = num_workers
         self._study_case = study_case
-        self.root = os.path.join(get_project_root(), 'datasets/eco/')
+        self.root = os.path.join(get_project_root(), "datasets/eco/")
 
         self.fea_dict = {
             "as": self.aggregation_sec,
@@ -263,9 +263,7 @@ class ECODataset(pl.LightningDataModule):
         t_f, t_l = torch.float32, torch.long
         if stage in (None, "fit"):
             if self.feature_type == "cwtraw":
-                (trn_x, trn_x1, trn_y), (val_x, val_x1, val_y) = self.on_setup_normlize(
-                    stage
-                )
+                (trn_x, trn_x1, trn_y), (val_x, val_x1, val_y) = self.on_setup_normlize(stage)
                 self.train_set = TensorDataset(
                     tensor(trn_x, dtype=t_f),
                     tensor(trn_x1, dtype=t_f),
@@ -298,9 +296,7 @@ class ECODataset(pl.LightningDataModule):
                 )
             else:
                 (test_x, test_y) = self.on_setup_normlize(stage)
-                self.test_set = TensorDataset(
-                    tensor(test_x, dtype=t_f), tensor(test_y, dtype=t_l)
-                )
+                self.test_set = TensorDataset(tensor(test_x, dtype=t_f), tensor(test_y, dtype=t_l))
                 self.test_set = DictDataset(test_x, test_y)
 
     def _to_dataloader(self, dataset, shuffle, batch_size, drop_last, sampler=None):
@@ -329,19 +325,13 @@ class ECODataset(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        return self._to_dataloader(
-            self.val_set, False, self.batch_size, drop_last=False
-        )
+        return self._to_dataloader(self.val_set, False, self.batch_size, drop_last=False)
 
     def test_dataloader(self):
-        return self._to_dataloader(
-            self.test_set, False, self.batch_size, drop_last=False
-        )
+        return self._to_dataloader(self.test_set, False, self.batch_size, drop_last=False)
 
     def predict_dataloader(self):
-        return self._to_dataloader(
-            self.test_set, False, self.batch_size, drop_last=False
-        )
+        return self._to_dataloader(self.test_set, False, self.batch_size, drop_last=False)
 
 
 def test1():
