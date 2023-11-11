@@ -9,23 +9,35 @@ infrastructure (AMI) network make it possible to infer buildings’ occupancy st
 
 #### Please consider starring us, if you found it useful. Thanks
 
+## Requirements
+```bash
+conda create -n abode_net python=3.11
+pip install -r requirements.txt
+
+```
+
+## Run Demo
+```bash
+python train.py --model ABODE_Net --dataset ECO
+```
+
 ## Citation
 
 ```bibtext
 @InProceedings{10.1007/978-3-031-28124-2_15,
-author="Luo, Zhirui
-and Qi, Ruobin
-and Li, Qingqing
-and Zheng, Jun
-and Shao, Sihua",
-editor="Qiu, Meikang
-and Lu, Zhihui
-and Zhang, Cheng",
-title="ABODE-Net: An Attention-based Deep Learning Model for Non-intrusive Building Occupancy Detection Using Smart Meter Data",
-booktitle="Smart Computing and Communication",
-year="2023",
-publisher="Springer Nature Switzerland",
-address="Cham",
-pages="152--164",
+    author="Luo, Zhirui
+    and Qi, Ruobin
+    and Li, Qingqing
+    and Zheng, Jun
+    and Shao, Sihua",
+    editor="Qiu, Meikang
+    and Lu, Zhihui
+    and Zhang, Cheng",
+    title="ABODE-Net: An Attention-based Deep Learning Model for Non-intrusive Building Occupancy Detection Using Smart Meter Data",
+    booktitle="Smart Computing and Communication",
+    year="2023",
+    publisher="Springer Nature Switzerland",
+    address="Cham",
+    pages="152--164",
 }
 ```
