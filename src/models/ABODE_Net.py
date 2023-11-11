@@ -3,11 +3,21 @@ import math
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from einops import rearrange
 from torch.nn.utils import spectral_norm
-
+from src.models.base_module import LightningBaseModule
 
 logger = logging.getLogger(__name__)
+
+
+def get_options():
+    return [
+        ['nclass', int, 2,],
+        ['label_smoothing', float, 0.2],
+        ['optimizer', str, 'Adam'],
+        ['lr_scheduler', str, 'cosine_schedule_with_warmup']
+    ]
 
 
 class FCN_Block2d(nn.Module):
@@ -188,7 +198,7 @@ class ParallelAttention(nn.Module):
         return x
 
 
-class ABODE_Net(nn.Module):
+class ABODE_Net_model(nn.Module):
     def __init__(self, nclass) -> None:
         super().__init__()
         
@@ -210,6 +220,27 @@ class ABODE_Net(nn.Module):
         x = self.pool(x)
         x = self.classifier(x)
         return x
+
+class ABODE_Net(LightningBaseModule):
+    def __init__(self, nclass: int, label_smoothing: float, optimizer: str, lr_scheduler: str):
+        super().__init__(nclass, optimizer, lr_scheduler)
+        self.model = ABODE_Net_model(nclass)
+        self.label_smoothing = label_smoothing
+        self.loss_fn = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
+    
+    def loss(self, pred, label):
+        return self.loss_fn(pred, label)
+        
+    def forward(self, batch):
+        predictions = {}
+        x = batch['input'] 
+        target = batch['target']
+        pred = self.model(x)
+        
+        predictions['output'] = torch.max(pred, dim=1)[1]
+        predictions['loss'] = self.loss(pred, target)
+        predictions['pred'] = x
+        return predictions
 
 
 def test_abode_net():

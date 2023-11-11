@@ -8,17 +8,15 @@ import numpy as np
 import os
 import pandas as pd
 import pytorch_lightning as pl
-import torch
-from torch import tensor
-from src.dataset.base_dataset import find_class
-from src.sampler.imbalanced_sampler import ImbalancedDatasetSampler
-from src.sampler.stratified_sampler import StratifiedSampler
+from src.datasets.base_dataset import find_class
+from src.datautils.imbalanced_sampler import ImbalancedDatasetSampler
+from src.datautils.stratified_sampler import StratifiedSampler
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import TensorDataset
 from src.context import get_project_root
 from src.utils.slide_window import sliding_window
-from src.dataset.NIOM.NIOM_spliter import NIOM_Spliter
+from src.datasets.NIOM.NIOM_spliter import NIOM_Spliter
 from src.utils.normalization import get_norm_cls
+from ..base_dataset import DictDataset, tensor_dataset
 
 logger = logging.getLogger(__name__)
 temp_folder = os.path.join(get_project_root(), '.temp')
@@ -171,8 +169,6 @@ def get_norm_func(norm_type, fea_type):
         mask_axis = (2,)
     return get_norm_cls(norm_type)(mask_axis)
 
-def tensor_dataset(x, y):
-    return TensorDataset(tensor(x, dtype=torch.float32), tensor(y, dtype=torch.long))
 
 def threshold_occ(y: np.ndarray, th):
     vfunc = np.vectorize(lambda x: float(x >= th))
@@ -182,7 +178,7 @@ def threshold_occ(y: np.ndarray, th):
 
 class NIOMDataset(pl.LightningDataModule):
     def __init__(self, study_case,norm_type,splits,fea_type,data_aug,agg_sec,
-        batch_size,seed,imb_sam,slide_w,slide_s,t_en,w_en,hol_en,determ):
+        batch_size,seed,imb_sam,slide_w,slide_s,t_en,w_en,hol_en,determ, num_workers):
         super().__init__()
         self.root = './datasets/NIOM_occ/selected'
         self.study_case = study_case
@@ -201,6 +197,7 @@ class NIOMDataset(pl.LightningDataModule):
         if w_en: self.addtional_features.append('week')
         if hol_en: self.addtional_features.append('hol')
         self.determ = determ
+        self.num_workers = num_workers
         self.fea_dict = {
             'as':agg_sec, 'sw':slide_w, 'ss': slide_s,
             'te': t_en, 'we': w_en, 'hol': hol_en,
@@ -222,7 +219,6 @@ class NIOMDataset(pl.LightningDataModule):
         household_data = load_data(self.root, self.study_case)
         self.X, self.occ = prepare_data(household_data,self.fea_type,self.agg_sec,self.slide_param,self.addtional_features)
         self.y = threshold_occ(self.occ,self.threshold)
-        # logger.debug(self.occ)
         self.nc = self.X.shape[1]
         self.variable_len = self.X.shape[2]
         self.max_len = self.X.shape[2]
@@ -273,12 +269,12 @@ class NIOMDataset(pl.LightningDataModule):
         else: 
             seed = None
         if self.data_aug == 'SMOTE':
-            from src.dataset.data_augmentation import DataAug_SMOTE
+            from src.datautils.oversample import DataAug_SMOTE
             smote = DataAug_SMOTE(random_state=seed)
             train_x, train_y = smote.resample(train_x, train_y)
             return train_x, train_y
         elif self.data_aug == 'RANDOM':
-            from src.dataset.data_augmentation import DataAug_RANDOM
+            from src.datautils.oversample import DataAug_RANDOM
             rand_aug = DataAug_RANDOM(random_state=seed)
             train_x, train_y = rand_aug.resample(train_x, train_y)
             return train_x, train_y
@@ -288,16 +284,18 @@ class NIOMDataset(pl.LightningDataModule):
         if stage in (None, 'fit'):
             (trn_x, val_x), (trn_y, val_y) = self.on_setup_normlize((self.train_x,self.val_x),(self.train_y,self.val_y),stage)
             trn_x, trn_y = self.on_data_augmentation(trn_x, trn_y)
-            self.train_set = tensor_dataset(trn_x, trn_y)
-            self.val_set = tensor_dataset(val_x, val_y)
+            # self.train_set = tensor_dataset(trn_x, trn_y)
+            # self.val_set = tensor_dataset(val_x, val_y)
+            self.train_set = DictDataset(trn_x, trn_y)
+            self.val_set = DictDataset(val_x, val_y)
         
         if stage in (None, 'test', 'predict'):
             (test_x), (test_y) = self.on_setup_normlize((self.test_x),(self.test_y), stage)
-            self.test_set = tensor_dataset(test_x, test_y)
+            # self.test_set = tensor_dataset(test_x, test_y)
+            self.test_set = DictDataset(test_x, test_y)
         
-    def _to_dataloader(self, dataset, shuffle, batch_size, drop_last, sampler=None):
+    def _to_dataloader(self, dataset, shuffle, batch_size, num_workers, drop_last, sampler=None):
         if sampler: shuffle = False
-        from src.utils.cuda_status import cpu_count
         return DataLoader(
             dataset,
             batch_size=batch_size,
@@ -305,27 +303,23 @@ class NIOMDataset(pl.LightningDataModule):
             drop_last=drop_last,
             shuffle=shuffle,
             sampler=sampler,
-            num_workers=cpu_count()
+            num_workers=num_workers,
         )
 
     def train_dataloader(self):
+        sampler = None
         if self.imbalance_sampler:
             sampler = ImbalancedDatasetSampler(self.train_set)
-        # elif self.stra_sam:
-            # sampler = StratifiedSampler(self.labels, self.batch_size)
-        else:
-            sampler = None
-            # sampler = StratifiedSampler(self.labels, self.batch_size)
-        return self._to_dataloader(self.train_set, True, self.batch_size, drop_last=False, sampler=sampler)
+        return self._to_dataloader(self.train_set, True, self.batch_size, num_workers=self.num_workers, drop_last=False, sampler=sampler)
 
     def val_dataloader(self):
-        return self._to_dataloader(self.val_set, False, self.batch_size, drop_last=False)
+        return self._to_dataloader(self.val_set, False, self.batch_size, num_workers=self.num_workers, drop_last=False)
 
     def test_dataloader(self):
-        return self._to_dataloader(self.test_set, False, self.batch_size, drop_last=False)
+        return self._to_dataloader(self.test_set, False, self.batch_size, num_workers=self.num_workers, drop_last=False)
 
     def predict_dataloader(self):
-        return self._to_dataloader(self.test_set, False, self.batch_size, drop_last=False)
+        return self._to_dataloader(self.test_set, False, self.batch_size, num_workers=self.num_workers, drop_last=False)
 
 def test():
     from src.logger.get_configured_logger import get_console_logger

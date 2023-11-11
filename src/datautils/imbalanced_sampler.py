@@ -41,6 +41,8 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
             return self.callback_get_label(dataset)
         elif isinstance(dataset, torch.utils.data.TensorDataset):
             return dataset.tensors[:][-1]
+        elif isinstance(dataset, torch.utils.data.Dataset):
+            return dataset.target
         else:
             raise NotImplementedError
 

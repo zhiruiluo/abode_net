@@ -13,8 +13,6 @@ from torchmetrics.classification import (
     MultilabelF1Score,
 )
 
-from src.base_module.configs import ExpResults, Metrics
-
 logger = logging.getLogger(__name__)
 
 
@@ -110,44 +108,3 @@ def get_metrics(
         dc[n] = builder(n, nclass, multilabel)
     logger.info(dc)
     return dc
-
-
-class Metrics_Helper:
-    def __init__(self) -> None:
-        ...
-
-    @staticmethod
-    def to_Metrics(results: dict[str, Any], phase: str) -> Metrics:
-        res = {}
-        for k in ["acc", "accmacro", "f1macro", "f1micro", "loss", "confmx"]:
-            value = results.get(f"{phase}_{k}", None)
-            if value is not None:
-                if k == 'confmx':
-                    value = str(value)
-                else:
-                    value = float(value)
-            res[k] = value
-
-        return Metrics(**res)
-
-    @staticmethod
-    def from_results(
-        results: dict[str, Any],
-        start_time: datetime.datetime,
-        training_time: datetime.timedelta,
-        macs: int = None,
-        flops: int = None,
-        params: dict = {},
-    ) -> ExpResults:
-        res = {}
-        logger.info(results)
-        for phase in ["train", "val", "test"]:
-            metric = Metrics_Helper.to_Metrics(results, phase)
-            res[f"{phase}_metrics"] = metric
-        res["start_time"] = start_time
-        res["training_time"] = training_time
-        res["macs"] = macs
-        res["flops"] = flops
-        res["params"] = params
-        logger.info(res)
-        return ExpResults(**res)

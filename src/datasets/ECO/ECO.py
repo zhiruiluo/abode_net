@@ -7,7 +7,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import tensor
-from src.base_module.base_dataset import find_class
+from src.datasets.base_dataset import find_class
 from .ECO_utils import (
     preprocess,
     threshold_occ,
@@ -16,11 +16,12 @@ from .ECO_utils import (
     get_norm_func,
 )
 import os
-from src.sampler.imbalanced_sampler import ImbalancedDatasetSampler
+from src.datautils.imbalanced_sampler import ImbalancedDatasetSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.dataset import TensorDataset
-from src.context import get_project_root
 from .ECO_spliter import ECO_Spliter
+from src.context import get_project_root
+from ..base_dataset import DictDataset
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class ECODataset(pl.LightningDataModule):
         sm_cum,
         data_aug,
         determ,
-        num_workers=8,
+        num_workers,
     ) -> None:
         super().__init__()
         self.feature_type = fea_type
@@ -72,7 +73,7 @@ class ECODataset(pl.LightningDataModule):
         self.determ = determ
         self.num_workers = num_workers
         self._study_case = study_case
-        self.root = os.path.join(get_project_root(), "datasets/eco/")
+        self.root = os.path.join(get_project_root(), 'datasets/eco/')
 
         self.fea_dict = {
             "as": self.aggregation_sec,
@@ -245,13 +246,13 @@ class ECODataset(pl.LightningDataModule):
         else:
             seed = None
         if self.data_aug == "SMOTE":
-            from src.dataset.data_augmentation import DataAug_SMOTE
+            from src.datautils.oversample import DataAug_SMOTE
 
             smote = DataAug_SMOTE(random_state=seed)
             train_x, train_y = smote.resample(train_x, train_y)
             return train_x, train_y
         elif self.data_aug == "RANDOM":
-            from src.dataset.data_augmentation import DataAug_RANDOM
+            from src.datautils.oversample import DataAug_RANDOM
 
             rand_aug = DataAug_RANDOM(random_state=seed)
             train_x, train_y = rand_aug.resample(train_x, train_y)
@@ -278,12 +279,14 @@ class ECODataset(pl.LightningDataModule):
             else:
                 (trn_x, trn_y), (val_x, val_y) = self.on_setup_normlize(stage)
                 trn_x, trn_y = self.on_data_augmentation(trn_x, trn_y)
-                self.train_set = TensorDataset(
-                    tensor(trn_x, dtype=t_f), tensor(trn_y, dtype=t_l)
-                )
-                self.val_set = TensorDataset(
-                    tensor(val_x, dtype=t_f), tensor(val_y, dtype=t_l)
-                )
+                # self.train_set = TensorDataset(
+                #     tensor(trn_x, dtype=t_f), tensor(trn_y, dtype=t_l)
+                # )
+                # self.val_set = TensorDataset(
+                #     tensor(val_x, dtype=t_f), tensor(val_y, dtype=t_l)
+                # )
+                self.train_set = DictDataset(trn_x, trn_y)
+                self.val_set = DictDataset(val_x, val_y)
 
         if stage in (None, "test", "predict"):
             if self.feature_type == "cwtraw":
@@ -298,6 +301,7 @@ class ECODataset(pl.LightningDataModule):
                 self.test_set = TensorDataset(
                     tensor(test_x, dtype=t_f), tensor(test_y, dtype=t_l)
                 )
+                self.test_set = DictDataset(test_x, test_y)
 
     def _to_dataloader(self, dataset, shuffle, batch_size, drop_last, sampler=None):
         if sampler:
@@ -319,6 +323,7 @@ class ECODataset(pl.LightningDataModule):
             sampler = ImbalancedDatasetSampler(self.train_set)
         else:
             sampler = None
+        logger.info("train_dataloader called")
         return self._to_dataloader(
             self.train_set, True, self.batch_size, drop_last=False, sampler=sampler
         )
