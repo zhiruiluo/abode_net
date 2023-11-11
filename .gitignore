@@ -2,6 +2,6 @@ __pycache__
 .pytest_cache
 .vscode
 logging/
-./datasets/
+./datasets
 .temp/
 spliting/
