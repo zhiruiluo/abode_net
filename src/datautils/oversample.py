@@ -4,9 +4,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['DataAug_SMOTE', 'DataAug_RANDOM']
+__all__ = ["DataAug_SMOTE", "DataAug_RANDOM"]
 
-class Base():
+
+class Base:
     def __init__(self, random_state) -> None:
         if random_state == None:
             random_state = np.random.RandomState()
@@ -20,8 +21,9 @@ class Base():
         x = x.reshape(shape[0], -1)
         self.sampler = self.get_sampler()
         x_res, y_res = self.sampler.fit_resample(x, y)
-        x_res = x_res.reshape(-1,*shape[1:])
+        x_res = x_res.reshape(-1, *shape[1:])
         return x_res, y_res
+
 
 class DataAug_SMOTE(Base):
     def __init__(self, random_state=None) -> None:
@@ -29,6 +31,7 @@ class DataAug_SMOTE(Base):
 
     def get_sampler(self):
         return SMOTE(random_state=self.random_state)
+
 
 class DataAug_RANDOM(Base):
     def __init__(self, random_state) -> None:

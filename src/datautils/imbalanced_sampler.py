@@ -14,7 +14,13 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
         callback_get_label: a callback-like function which takes two arguments - dataset and index
     """
 
-    def __init__(self, dataset, indices: list = None, num_samples: int = None, callback_get_label: Callable = None):
+    def __init__(
+        self,
+        dataset,
+        indices: list = None,
+        num_samples: int = None,
+        callback_get_label: Callable = None,
+    ):
         # if indices is not provided, all elements in the dataset will be considered
         self.indices = list(range(len(dataset))) if indices is None else indices
 
@@ -47,7 +53,10 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
             raise NotImplementedError
 
     def __iter__(self):
-        return (self.indices[i] for i in torch.multinomial(self.weights, self.num_samples, replacement=True))
+        return (
+            self.indices[i]
+            for i in torch.multinomial(self.weights, self.num_samples, replacement=True)
+        )
 
     def __len__(self):
         return self.num_samples

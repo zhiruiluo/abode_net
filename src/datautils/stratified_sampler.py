@@ -1,9 +1,11 @@
 import torch
 
+
 class StratifiedSampler(torch.utils.data.sampler.Sampler):
     """Stratified Sampling
     Provides equal representation of target classes in each batch
     """
+
     def __init__(self, class_vector, batch_size):
         """
         Arguments
@@ -20,11 +22,11 @@ class StratifiedSampler(torch.utils.data.sampler.Sampler):
         try:
             from sklearn.model_selection import StratifiedShuffleSplit
         except:
-            print('Need scikit-learn for this functionality')
+            print("Need scikit-learn for this functionality")
         import numpy as np
-        
+
         s = StratifiedShuffleSplit(n_splits=self.n_splits, test_size=0.5)
-        X = torch.randn(self.class_vector.size(0),2).numpy()
+        X = torch.randn(self.class_vector.size(0), 2).numpy()
         y = self.class_vector.numpy()
         s.get_n_splits(X, y)
 
