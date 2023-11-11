@@ -12,8 +12,8 @@ infrastructure (AMI) network make it possible to infer buildings’ occupancy st
 ## Requirements
 ```bash
 conda create -n abode_net python=3.11
+conda activate abode_net
 pip install -r requirements.txt
-
 ```
 
 ## Run Demo
