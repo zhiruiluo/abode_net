@@ -16,7 +16,7 @@ def add_model_hyperparameter(parser, model):
 
 
 def add_dataset_parameter(parser, dataset):
-    # dataset specific hyperparameters are returned from the get_options function located in the corresponding model file.
+    # dataset specific hyperparameters are returned from the get_options function located in the corresponding dataset file.
     # format [param_name, type, default] e.g., ['nclass', int, 2,] => param_name='nclass', type=int, default='2'
     _, options = DatasetSelection.getParams(dataset)
     for o in options:
